@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>محوّل PDF إلى Word</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mut:#6b7280;--ac:#2b6cff;--bd:#d9dde8}
+@media (prefers-color-scheme:dark){:root{--bg:#12141a;--card:#1b1e27;--tx:#eef0f6;--mut:#9aa1b2;--ac:#6b9bff;--bd:#2d3242}}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+main{max-width:520px;margin:0 auto;padding:20px 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px}
+.drop{display:block;border:2px dashed var(--bd);border-radius:14px;padding:30px 12px;text-align:center;cursor:pointer;color:var(--mut)}
+.drop b{display:block;color:var(--tx);margin-bottom:4px}
+input[type=file]{display:none}
+label.opt{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:.95rem}
+button{width:100%;margin-top:14px;padding:14px;border:0;border-radius:12px;background:var(--ac);color:#fff;font-size:1rem;font-weight:600;font-family:inherit}
+button:disabled{opacity:.45}
+#msg{margin-top:12px;font-size:.92rem;color:var(--mut);min-height:1.2em}
+small{display:block;margin-top:14px;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>📄 محوّل PDF إلى Word</h1>
+<div class="card">
+<label class="drop" for="f"><b id="fn">اختر ملف PDF</b><span>حتى 30 ميجا</span></label>
+<input id="f" type="file" accept="application/pdf,.pdf">
+<label class="opt"><input type="checkbox" id="ocr"> الملف ممسوح ضوئيًا (صور)، فعّل قراءة النص OCR</label>
+<button id="go" disabled>حوّل إلى Word</button>
+<div id="msg"></div>
+</div>
+<small>تُحذف ملفاتك من السيرفر مباشرة بعد التحويل. OCR أبطأ ويحتاج دقيقة أو أكثر.</small>
+</main>
+<script>
+const $=i=>document.getElementById(i);let file=null;
+$("f").onchange=e=>{file=e.target.files[0]||null;if(file){$("fn").textContent=file.name;$("go").disabled=false;$("msg").textContent=""}};
+$("go").onclick=async()=>{
+  if(!file)return;
+  $("go").disabled=true;$("msg").textContent="جارٍ التحويل... لا تغلق الصفحة";
+  const fd=new FormData();fd.append("file",file);fd.append("ocr",$("ocr").checked?"1":"0");
+  try{
+    const r=await fetch("/convert",{method:"POST",body:fd});
+    if(!r.ok){let m="فشل التحويل";try{m=(await r.json()).error||m}catch(e){}throw new Error(m)}
+    const b=await r.blob(),a=document.createElement("a");
+    a.href=URL.createObjectURL(b);a.download=file.name.replace(/\.pdf$/i,"")+".docx";
+    document.body.appendChild(a);a.click();a.remove();
+    $("msg").textContent="تم ✅ نزل ملف Word";
+  }catch(e){$("msg").textContent="⚠️ "+e.message}
+  $("go").disabled=false;
+};
+</script>
+</body>
+</html>
